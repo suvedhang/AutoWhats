@@ -1,45 +1,77 @@
+from playwright.sync_api import Page
 import time
-from config.selectors import SEARCH_BOX, MESSAGE_INPUT_BOX
-from config.delays import human_delay
 
 
-def send_message(page, contact_name: str, message: str) -> bool:
+def send_message(page: Page, contact_name: str, message: str) -> bool:
     """
-    Robust message sender that works for:
-    - Contacts
-    - Groups
-    - Emoji group names
-    - Partial matches
+    Send a WhatsApp message using search + first result click.
+    NO exact title matching.
     """
 
-    # 1️⃣ Focus search box
-    page.wait_for_selector(SEARCH_BOX, timeout=15000)
-    page.click(SEARCH_BOX)
-    time.sleep(human_delay())
+    try:
+        print("[DEBUG] send_message() started")
 
-    # 2️⃣ Clear search
-    page.keyboard.press("Control+A")
-    page.keyboard.press("Backspace")
-    time.sleep(human_delay(200, 400))
+        # 1. Ensure WhatsApp UI loaded
+        page.wait_for_selector("body", timeout=20000)
 
-    # 3️⃣ Type contact / group name
-    page.keyboard.type(contact_name, delay=80)
-    time.sleep(human_delay(1000, 1500))
+        # 2. Find search box (new + old UI support)
+        search_box = None
 
-    # 4️⃣ Open FIRST matched chat (works for groups)
-    page.keyboard.press("Enter")
-    time.sleep(human_delay(800, 1200))
+        try:
+            search_box = page.wait_for_selector(
+                "input[placeholder*='Search']",
+                timeout=5000
+            )
+            print("[DEBUG] Found search input by placeholder")
+        except Exception:
+            pass
 
-    # 5️⃣ Type message
-    page.wait_for_selector(MESSAGE_INPUT_BOX, timeout=15000)
-    page.click(MESSAGE_INPUT_BOX)
+        if search_box is None:
+            try:
+                search_box = page.wait_for_selector(
+                    "input[aria-label*='Search']",
+                    timeout=5000
+                )
+                print("[DEBUG] Found search input by aria-label")
+            except Exception:
+                pass
 
-    for char in message:
-        page.keyboard.type(char)
-        time.sleep(human_delay(40, 120))
+        if search_box is None:
+            search_box = page.wait_for_selector(
+                "div[role='textbox']",
+                timeout=5000
+            )
+            print("[DEBUG] Found search box as textbox")
 
-    # 6️⃣ Send message
-    page.keyboard.press("Enter")
-    time.sleep(human_delay())
+        # 3. Clear + type contact name
+        search_box.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Backspace")
+        search_box.fill(contact_name)
 
-    return True
+        page.wait_for_timeout(1500)
+
+        # 4. CLICK FIRST SEARCH RESULT (NO NAME MATCHING)
+        print("[DEBUG] Clicking first search result")
+        chat = page.wait_for_selector(
+            "div#pane-side span[title]",
+            timeout=15000
+        )
+        chat.click()
+
+        # 5. Message input box
+        message_box = page.wait_for_selector(
+            "footer div[contenteditable='true']",
+            timeout=15000
+        )
+
+        message_box.click()
+        message_box.fill(message)
+        message_box.press("Enter")
+
+        print(f"[SUCCESS] Message sent to {contact_name}")
+        return True
+
+    except Exception as e:
+        print(f"[ERROR] Failed to send message: {e}")
+        return False

@@ -44,7 +44,7 @@ SEARCH_BOX = 'div[contenteditable="true"][data-tab="3"]'
 # =========================
 
 # Message input box inside an opened chat
-MESSAGE_INPUT_BOX = 'div[contenteditable="true"][data-tab="10"]'
+MESSAGE_INPUT_BOX = 'footer div[contenteditable="true"]'
 
 # Send button (used only as fallback; Enter key preferred)
 SEND_BUTTON = 'button[data-testid="compose-btn-send"]'
