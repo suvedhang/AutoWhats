@@ -27,7 +27,7 @@ CHAT_TITLE = 'span[title]'
 
 # Unread message badge (green number)
 # This appears only if a chat has unread messages
-UNREAD_BADGE = 'span[data-testid="icon-unread-count"]'
+UNREAD_BADGE = 'span[aria-label*="unread message"]'
 
 
 # =========================
